@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Base image
-FROM ruby:3.2.3-alpine as base
+FROM ghcr.io/graalvm/truffleruby-community:24-debian AS base
 
 ENV BUNDLE_WITHOUT="development:test" \
     BUNDLE_PATH="/usr/local/bundle" \
@@ -9,26 +9,27 @@ ENV BUNDLE_WITHOUT="development:test" \
     RAILS_ENV="production"
 
 # Build stage
-FROM base as build
+FROM base AS build
+
+RUN apt-get update && apt-get install -y \
+  git \
+  build-essential \
+  libxml2-dev \
+  libxslt-dev \
+  tzdata \
+  openssl \
+  libpq-dev
 
 WORKDIR /app
 COPY ./Gemfile /app/Gemfile
 COPY ./Gemfile.lock /app/Gemfile.lock
 
-RUN apk add --no-cache \
-  git \
-  bash \
-  build-base \
-  libxml2-dev \
-  libxslt-dev \
-  tzdata \
-  openssl \
-  postgresql-dev \
-  libc6-compat && \
+RUN \
   bundle config --global without "${BUNDLE_WITHOUT}"  && \
   bundle config --global path "${BUNDLE_PATH}" && \
   bundle config --global deployment "${BUNDLE_DEPLOYMENT}" && \
   bundle config --global retry 5 && \
+  CFLAGS="-Wno-error=implicit-function-declaration" && \
   bundle install && \
   find /usr/local/bundle/ \
     \( \
@@ -45,12 +46,15 @@ RUN apk add --no-cache \
 FROM base
 LABEL maintainer="keygen.sh <oss@keygen.sh>"
 
-RUN apk add --no-cache \
-  bash \
+RUN apt-get update && apt-get install -y \
   postgresql-client \
-  tzdata \
-  libc6-compat && \
-  adduser -h /app -g keygen -u 1000 -s /bin/bash -D keygen
+  tzdata && \
+  apt-get purge -y gcc make && \
+  groupadd -g 1000 keygen && \
+  useradd -m -d /app -g keygen -u 1000 keygen && \
+  apt-get autopurge -y && \
+  apt-get clean && \
+  rm -rf /tmp/*
 
 COPY --from=build --chown=keygen:keygen \
   /usr/local/bundle/ /usr/local/bundle
