@@ -3,10 +3,7 @@
 # Base image
 FROM ruby:3.3.6-alpine as base
 
-ENV BUNDLE_WITHOUT="development:test" \
-  BUNDLE_PATH="/usr/local/bundle" \
-  BUNDLE_DEPLOYMENT="1" \
-  RAILS_ENV="production"
+ENV BUNDLE_PATH="/usr/local/bundle"
 
 # Build base
 FROM base AS build-base
@@ -31,6 +28,10 @@ RUN apk add --no-cache \
 FROM build-base AS build
 WORKDIR /app
 
+ENV BUNDLE_WITHOUT="development:test" \
+  BUNDLE_DEPLOYMENT="1" \
+  RAILS_ENV="production"
+
 COPY ./Gemfile /app/Gemfile
 COPY ./Gemfile.lock /app/Gemfile.lock  
 
@@ -50,6 +51,10 @@ RUN \
 # Final stage
 FROM base AS production
 LABEL maintainer="keygen.sh <oss@keygen.sh>"
+
+ENV BUNDLE_WITHOUT="development:test" \
+  BUNDLE_DEPLOYMENT="1" \
+  RAILS_ENV="production"
 
 RUN apk add --no-cache \
   bash \
