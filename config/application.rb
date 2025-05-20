@@ -137,7 +137,7 @@ module Keygen
 
     # Set default URL options before server boots
     config.before_initialize do |app|
-      app.default_url_options = { protocol: 'https' }.tap do |options|
+      app.default_url_options = { protocol: ENV.fetch('KEYGEN_FORCE_SSL', 'true').to_s.downcase != 'false' ? 'https' : 'http' }.tap do |options|
         options[:host] = ENV['KEYGEN_HOST'] if ENV.key?('KEYGEN_HOST')
       end
     end

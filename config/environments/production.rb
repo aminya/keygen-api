@@ -63,10 +63,20 @@ Rails.application.configure do
   # config.action_cable.mount_path = nil
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
-  config.ssl_options = {
-    redirect: { exclude: -> req { req.path =~ %r(^/v\d+/health) } },
-  }
+  config.force_ssl = ENV.fetch('KEYGEN_FORCE_SSL', 'true').to_s.downcase != 'false'
+
+  # Only configure SSL options if SSL is forced
+  if config.force_ssl
+    config.ssl_options = {
+      redirect: { exclude: -> req { req.path =~ %r(^/v\d+/health) } },
+    }
+    
+    # Configure Rails to use forwarded headers only when SSL is forced
+    config.action_dispatch.forwarded_headers = %w[X-Forwarded-Proto X-Forwarded-For X-Forwarded-Host]
+  else
+    # Disable forwarded headers when not using SSL
+    config.action_dispatch.forwarded_headers = []
+  end
 
   # Prepend all log lines with the following tags.
   config.log_tags = [:request_id]
