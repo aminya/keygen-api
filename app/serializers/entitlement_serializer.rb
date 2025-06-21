@@ -6,7 +6,7 @@ class EntitlementSerializer < BaseSerializer
   attribute :name
   attribute :code
   attribute :metadata do
-    @object.metadata&.deep_transform_keys { _1.to_s.camelize :lower } or {}
+    @object.metadata or {}
   end
   attribute :created do
     @object.created_at

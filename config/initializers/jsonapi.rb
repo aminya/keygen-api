@@ -8,7 +8,20 @@ ActionDispatch::Request.parameter_parsers[:jsonapi] = -> raw_post {
   data = { data: data } unless
     data.is_a?(Hash)
 
-  data.deep_transform_keys! { |k| k.to_s.underscore.parameterize(separator: '_') }
+  # Transform keys but preserve case and slashes in metadata
+  data.deep_transform_keys! do |k|
+    # Don't transform metadata keys to preserve case and slashes
+    if k.to_s == 'metadata' || k.to_s == 'attributes' && data[k]&.key?('metadata')
+      k.to_s
+    else
+      k.to_s.underscore.parameterize(separator: '_')
+    end
+  end
+
+  # Handle nested metadata within attributes
+  if data[:attributes]&.key?(:metadata)
+    data[:attributes][:metadata] = data[:attributes][:metadata].deep_transform_keys { |k| k.to_s }
+  end
 
   data.with_indifferent_access
 }
